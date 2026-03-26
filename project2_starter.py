@@ -1,7 +1,7 @@
 # SI 201 HW4 (Library Checkout System)
-# Your name:
-# Your student id:
-# Your email:
+# Your name: wale alawiye
+# Your student id: 07549839
+# Your email: alawiye@umich.edu
 # Who or what you worked with on this homework (including generative AI like ChatGPT):
 # If you worked with generative AI also add a statement for how you used it.
 # e.g.:
@@ -41,7 +41,22 @@ def load_listing_results(html_path) -> list[tuple]:
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
-    pass
+    from bs4 import BeautifulSoup
+
+    with open(html_path, encoding="utf-8-sig") as f:
+        soup = BeautifulSoup(f, "html.parser")
+
+    listings = []
+
+    # find all divs with class for title cards
+    title_divs = soup.find_all("div", {"data-testid": "listing-card-title"})
+
+    for div in title_divs:
+        title = div.get_text().strip()
+        listing_id = div.get("id").replace("title_", "")
+        listings.append((title, listing_id))
+
+    return listings
     # ==============================
     # YOUR CODE ENDS HERE
     # ==============================
