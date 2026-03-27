@@ -106,15 +106,20 @@ def get_listing_details(listing_id) -> dict:
 
     # POLICY NUMBER
     policy_number = ""
-    # Searches HTML for text containing "Policy number"
-    policy_text = soup.find(text=re.compile(r"Policy number"))
-    # Checks if text was found
+
+    policy_text = soup.find(string=re.compile(r"Policy number"))
+
     if policy_text:
-        # Uses regex to extract everything after "Policy number"
-        match = re.search(r"Policy number:\s*(.*)", policy_text)
-        if match:
-            # Saves the extracted policy number and removes extra whitespace
-            policy_number = match.group(1).strip()
+        text = policy_text.strip()
+
+        if "Pending" in text:
+            policy_number = "Pending"
+        elif "Exempt" in text:
+            policy_number = "Exempt"
+        else:
+            match = re.search(r"(STR-\d{7}|\d{4}-\d+STR)", text)
+            if match:
+                policy_number = match.group(1)
 
     # HOST TYPE AND NAME
     host_name = ""
@@ -122,34 +127,39 @@ def get_listing_details(listing_id) -> dict:
     # Finds a button element whos aria label contains the word "host"
     host_section = soup.find("button", {"aria-label": re.compile(r".*host.*")})
     if host_section:
-        # Takes the first word from the aria label for the host's name
-        host_name = host_section.get("aria-label").split(" ")[0]
-        # Checks if the host is a Superhost 
-        if "superhost" in host_section.get("aria-label").lower():
+        label = host_section.get("aria-label")
+        if "superhost" in label.lower():
             host_type = "Superhost"
         else:
-            host_type = "Regular"
+            host_type = "regular"
+        if "hosted by" in label.lower():
+            host_name = label.split("hosted by")[-1].strip()
+        else:
+            host_name = label.strip()
+        # remove "Superhost" text if it's attached
+        host_name = host_name.replace("Superhost", "").replace(",", "").strip()
 
     # ROOM TYPE
     room_type = ""
-    # Searches for an <h2> tag that has keywords entire, private, or shared
-    room_header = soup.find("h2", string=re.compile(r"Entire|Private|Shared"))
-    # Checks if it was found
-    if room_header:
-        room_type = room_header.text.strip()
+
+    subtitle = soup.find("h2")
+    if subtitle:
+        text = subtitle.get_text()
+
+        if "Private" in text:
+            room_type = "Private Room"
+        elif "Shared" in text:
+            room_type = "Shared Room"
+        else:
+            room_type = "Entire Room"
 
     #  LOCATION RATING 
-    # Default value
     location_rating = 0.0
-    # Finds a button whose aria-label contains rating format like "Rated __ out of 5"
-    rating_button = soup.find("button", {"aria-label": re.compile(r"Rated .* out of 5")})
-    # Checks if rating format exists
+    rating_button = soup.find("button", {"aria-label": re.compile(r"Location rating")})
+
     if rating_button:
-        # Uses regex to extract the number value
-        match = re.search(r"Rated ([0-9.]+) out of 5", rating_button["aria-label"])
-        # Ensures the rating was captured
+        match = re.search(r"([0-9.]+)", rating_button["aria-label"])
         if match:
-            # Turns extracted rating string into a float
             location_rating = float(match.group(1))
 
 
@@ -332,8 +342,8 @@ def validate_policy_numbers(data) -> list[str]:
         if policy_number in ["Pending", "Exempt"]:
             continue
 
-        # Checks for valid format which is STR-xxxxxx or 20##-xxxx
-        if not re.match(r"^(STR-[0-9]{7}|20\d{2}-[0-9]{4,})$", policy_number):
+        # Checks for valid format which is STR-000#### or 20##-00####STR
+        if not re.match(r"^(STR-\d{7}|20\d{2}-00\d{4})$", policy_number):
             invalid_ids.append(listing_id)
 
     return invalid_ids
@@ -374,7 +384,11 @@ class TestCases(unittest.TestCase):
     def test_load_listing_results(self):
         # TODO: Check that the number of listings extracted is 18.
         # TODO: Check that the FIRST (title, id) tuple is  ("Loft in Mission District", "1944564").
-        pass
+        
+        # Check total listings
+        self.assertEqual(len(self.listings), 18)
+        # Check first listing tuple
+        self.assertEqual(self.listings[0], ("Loft in Mission District", "1944564"))
 
     def test_get_listing_details(self):
         html_list = ["467507", "1550913", "1944564", "4614763", "6092596"]
@@ -385,14 +399,29 @@ class TestCases(unittest.TestCase):
         # 1) Check that listing 467507 has the correct policy number "STR-0005349".
         # 2) Check that listing 1944564 has the correct host type "Superhost" and room type "Entire Room".
         # 3) Check that listing 1944564 has the correct location rating 4.9.
-        pass
+        
+        listing_ids = ["467507", "1550913", "1944564", "4614763", "6092596"]
+        # Call get_listing_details on each id
+        results = [get_listing_details(listingid) for listingid in listing_ids]
+         # Spot-check values
+        self.assertEqual(results[0]["467507"]["policy_number"], "STR-0005349")
+        self.assertEqual(results[2]["1944564"]["host_type"], "Superhost")
+        self.assertEqual(results[2]["1944564"]["room_type"], "Entire Room")
+        self.assertAlmostEqual(results[2]["1944564"]["location_rating"], 4.9)
 
     def test_create_listing_database(self):
         # TODO: Check that each tuple in detailed_data has exactly 7 elements:
         # (listing_title, listing_id, policy_number, host_type, host_name, room_type, location_rating)
 
-        # TODO: Spot-check the LAST tuple is ("Guest suite in Mission District", "467507", "STR-0005349", "Superhost", "Jennifer", "Entire Room", 4.8).
-        pass
+        # Check that each tuple has 7 elements
+        for tup in self.detailed_data:
+            self.assertEqual(len(tup), 7)
+        # Spot check last tuple
+        self.assertEqual(
+            self.detailed_data[-1],
+            ("Guest suite in Mission District", "467507", "STR-0005349", "Superhost", "Jennifer", "Entire Room", 4.8)
+        )
+
 
     def test_output_csv(self):
         out_path = os.path.join(self.base_dir, "test.csv")
@@ -401,17 +430,33 @@ class TestCases(unittest.TestCase):
         # TODO: Read the CSV back in and store rows in a list.
         # TODO: Check that the first data row matches ["Guesthouse in San Francisco", "49591060", "STR-0000253", "Superhost", "Ingrid", "Entire Room", "5.0"].
 
+        output_csv(self.detailed_data, out_path)
+        # Read CSV back
+        with open(out_path, newline="", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            rows = list(reader)
+        # Check first data row (skip header if your output_csv writes headers)
+        first_row = rows[1] if rows[0][0] == "listing_title" else rows[0]
+        self.assertEqual(
+            first_row,
+            ["Guesthouse in San Francisco", "49591060", "STR-0000253", "Superhost", "Ingrid", "Entire Room", "5.0"]
+        )
+
         os.remove(out_path)
 
     def test_avg_location_rating_by_room_type(self):
         # TODO: Call avg_location_rating_by_room_type() and save the output.
         # TODO: Check that the average for "Private Room" is 4.9.
-        pass
+
+        avg_ratings = avg_location_rating_by_room_type(self.detailed_data)
+        self.assertAlmostEqual(avg_ratings.get("Private Room", 0), 4.9)
 
     def test_validate_policy_numbers(self):
         # TODO: Call validate_policy_numbers() on detailed_data and save the result into a variable invalid_listings.
         # TODO: Check that the list contains exactly "16204265" for this dataset.
-        pass
+        
+        invalid_listings = validate_policy_numbers(self.detailed_data)
+        self.assertEqual(invalid_listings, ["16204265"])
 
 
 def main():
