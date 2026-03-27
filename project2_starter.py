@@ -2,13 +2,13 @@
 # Your name: wale alawiye
 # Your student id: 07549839
 # Your email: alawiye@umich.edu
-# Who or what you worked with on this homework (including generative AI like ChatGPT):
+# Who or what you worked with on this homework (including generative AI like ChatGPT): Asked Claude for debugging help
 # If you worked with generative AI also add a statement for how you used it.
 # e.g.:
 # Asked ChatGPT for hints on debugging and for suggestions on overall code structure
 #
 # Did your use of GenAI on this assignment align with your goals and guidelines in your Gen AI contract? If not, why?
-#
+# Yes
 # --- ARGUMENTS & EXPECTED RETURN VALUES PROVIDED --- #
 # --- SEE INSTRUCTIONS FOR FULL DETAILS ON METHOD IMPLEMENTATION --- #
 
@@ -43,7 +43,6 @@ def load_listing_results(html_path) -> list[tuple]:
     # ==============================
     from bs4 import BeautifulSoup
 
-    # Opens HTML file using utf-8 encoding
     html_path = os.path.join(os.path.dirname(__file__), "html_files", "search_results.html")
     with open(html_path, encoding="utf-8-sig") as f:
         # Parses html content into beautifulsoup object
@@ -131,13 +130,13 @@ def get_listing_details(listing_id) -> dict:
             # clean \xa0 (non-breaking space)
             host_name = host_name.replace("\xa0", "").strip()
 
-# HOST TYPE
+    # HOST TYPE
     host_type = "regular"
     superhost_tag = soup.find(string=re.compile(r"is a Superhost", re.I))
     if superhost_tag:
         host_type = "Superhost"
 
-# LOCATION RATING
+    # LOCATION RATING
     location_rating = 0.0
     loc_label = soup.find("div", class_="_y1ba89", string="Location")
     if loc_label:
@@ -249,7 +248,7 @@ def output_csv(data, filename) -> None:
     with open(filename, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         # Writes header
-        writer.writerow(["listing_title", "listing_id", "policy_number", "host_type", "host_name", "room_type", "location_rating"])
+        writer.writerow(["Listing Title", "Listing ID", "Policy Number", "Host Type", "Host Name", "Room Type", "Location Rating"])
         # Writes data rows
         for row in data_sorted:
             writer.writerow(row)
@@ -327,7 +326,7 @@ def validate_policy_numbers(data) -> list[str]:
         policy_number = entry[2] # policy_number is at index 2
 
         # Skip Pending or Exempt
-        if policy_number in ["pending", "exempt"]:
+        if policy_number.lower() in ["pending", "exempt"]:
             continue
 
         # Checks for valid format which is STR-000#### or 20##-00####STR
@@ -424,7 +423,7 @@ class TestCases(unittest.TestCase):
             reader = csv.reader(f)
             rows = list(reader)
         # Check first data row (skip header if your output_csv writes headers)
-        first_row = rows[1] if rows[0][0] == "listing_title" else rows[0]
+        first_row = rows[1] if rows[0][0] == "Listing Title" else rows[0]
         self.assertEqual(
             first_row,
             ["Guesthouse in San Francisco", "49591060", "STR-0000253", "Superhost", "Ingrid", "Entire Room", "5.0"]
