@@ -43,17 +43,24 @@ def load_listing_results(html_path) -> list[tuple]:
     # ==============================
     from bs4 import BeautifulSoup
 
+    # Opens HTML file using utf-8 encoding
     with open(html_path, encoding="utf-8-sig") as f:
+        # Parses html content into beautifulsoup object
         soup = BeautifulSoup(f, "html.parser")
-
+    
+    # Empty list to store results
     listings = []
 
-    # find all divs with class for title cards
+    # Finds all <div> elements that have listing titles
     title_divs = soup.find_all("div", {"data-testid": "listing-card-title"})
 
+    # Loops through each listing title element found in the HTML
     for div in title_divs:
+        # Extracts visible text (the listing title) and removes extra spaces
         title = div.get_text().strip()
+        # Gets the id attribute and removes the title_ to isolate the actual listing ID
         listing_id = div.get("id").replace("title_", "")
+        # Adds the (title, listing_id) tuple to results list
         listings.append((title, listing_id))
 
     return listings
@@ -85,7 +92,76 @@ def get_listing_details(listing_id) -> dict:
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
-    pass
+    filename = f"listing_{listing_id}.html"
+    
+    # Opens the file in read mode with utf-8 encoding 
+    with open(filename, "r", encoding="utf-8") as f:
+        # Parses html content into beautifulsoup object 
+        soup = BeautifulSoup(f, "html.parser")
+    
+    # Empty dictionary to store listing data
+    details = {}
+
+
+    # POLICY NUMBER
+    policy_number = ""
+    # Searches HTML for text containing "Policy number"
+    policy_text = soup.find(text=re.compile(r"Policy number"))
+    # Checks if text was found
+    if policy_text:
+        # Uses regex to extract everything after "Policy number"
+        match = re.search(r"Policy number:\s*(.*)", policy_text)
+        if match:
+            # Saves the extracted policy number and removes extra whitespace
+            policy_number = match.group(1).strip()
+
+    # HOST TYPE AND NAME
+    host_name = ""
+    host_type = ""
+    # Finds a button element whos aria label contains the word "host"
+    host_section = soup.find("button", {"aria-label": re.compile(r".*host.*")})
+    if host_section:
+        # Takes the first word from the aria label for the host's name
+        host_name = host_section.get("aria-label").split(" ")[0]
+        # Checks if the host is a Superhost 
+        if "superhost" in host_section.get("aria-label").lower():
+            host_type = "Superhost"
+        else:
+            host_type = "Regular"
+
+    # ROOM TYPE
+    room_type = ""
+    # Searches for an <h2> tag that has keywords entire, private, or shared
+    room_header = soup.find("h2", string=re.compile(r"Entire|Private|Shared"))
+    # Checks if it was found
+    if room_header:
+        room_type = room_header.text.strip()
+
+    #  LOCATION RATING 
+    # Default value
+    location_rating = 0.0
+    # Finds a button whose aria-label contains rating format like "Rated __ out of 5"
+    rating_button = soup.find("button", {"aria-label": re.compile(r"Rated .* out of 5")})
+    # Checks if rating format exists
+    if rating_button:
+        # Uses regex to extract the number value
+        match = re.search(r"Rated ([0-9.]+) out of 5", rating_button["aria-label"])
+        # Ensures the rating was captured
+        if match:
+            # Turns extracted rating string into a float
+            location_rating = float(match.group(1))
+
+
+    # Stores all extracted values into a nested dictionary with the key being the listing ID
+    details[listing_id] = {
+        "policy_number": policy_number,
+        "host_type": host_type,
+        "host_name": host_name,
+        "room_type": room_type,
+        "location_rating": location_rating
+    }
+
+    return details
     # ==============================
     # YOUR CODE ENDS HERE
     # ==============================
@@ -253,7 +329,6 @@ class TestCases(unittest.TestCase):
 def main():
     detailed_data = create_listing_database(os.path.join("html_files", "search_results.html"))
     output_csv(detailed_data, "airbnb_dataset.csv")
-
 
 if __name__ == "__main__":
     main()
