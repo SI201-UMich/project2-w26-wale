@@ -44,6 +44,7 @@ def load_listing_results(html_path) -> list[tuple]:
     from bs4 import BeautifulSoup
 
     # Opens HTML file using utf-8 encoding
+    html_path = os.path.join(os.path.dirname(__file__), "html_files", "search_results.html")
     with open(html_path, encoding="utf-8-sig") as f:
         # Parses html content into beautifulsoup object
         soup = BeautifulSoup(f, "html.parser")
@@ -92,8 +93,7 @@ def get_listing_details(listing_id) -> dict:
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
-    #filename = f"listing_{listing_id}.html"
-    filename = os.path.join("html_files", f"listing_{listing_id}.html")
+    filename = os.path.join(os.path.dirname(__file__), "html_files", f"listing_{listing_id}.html")
    
     # Opens the file in read mode with utf-8 encoding 
     with open(filename, "r", encoding="utf-8") as f:
@@ -320,7 +320,24 @@ def validate_policy_numbers(data) -> list[str]:
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
-    pass
+    
+    invalid_ids = []
+
+    # Loop through each listing tuple in data
+    for entry in data:
+        listing_id = entry[1]   # listing_id is at index 1
+        policy_number = entry[2] # policy_number is at index 2
+
+        # Skip Pending or Exempt
+        if policy_number in ["Pending", "Exempt"]:
+            continue
+
+        # Checks for valid format which is STR-xxxxxx or 20##-xxxx
+        if not re.match(r"^(STR-[0-9]{7}|20\d{2}-[0-9]{4,})$", policy_number):
+            invalid_ids.append(listing_id)
+
+    return invalid_ids
+
     # ==============================
     # YOUR CODE ENDS HERE
     # ==============================
