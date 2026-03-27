@@ -93,83 +93,71 @@ def get_listing_details(listing_id) -> dict:
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
-    filename = os.path.join(os.path.dirname(__file__), "html_files", f"listing_{listing_id}.html")
-   
-    # Opens the file in read mode with utf-8 encoding 
-    with open(filename, "r", encoding="utf-8") as f:
-        # Parses html content into beautifulsoup object 
-        soup = BeautifulSoup(f, "html.parser")
     
-    # Empty dictionary to store listing data
-    details = {}
+    filename = os.path.join(os.path.dirname(__file__), "html_files", f"listing_{listing_id}.html")
+    with open(filename, "r", encoding="utf-8") as f:
+        soup = BeautifulSoup(f, "html.parser")
 
-
-    # POLICY NUMBER
+    # POLICY NUMBER 
     policy_number = ""
+    policy_section = soup.find(string=re.compile(r"Policy number", re.I))
+    if policy_section:
+        parent = policy_section.parent  # the <li>
+        span = parent.find("span")
+        if span:
+            text = span.get_text().strip()
+            if "Pending" in text:
+                policy_number = "Pending"
+            elif "Exempt" in text:
+                policy_number = "Exempt"
+            else:
+                policy_number = text
 
-    policy_text = soup.find(string=re.compile(r"Policy number"))
-
-    if policy_text:
-        text = policy_text.strip()
-
-        if "Pending" in text:
-            policy_number = "Pending"
-        elif "Exempt" in text:
-            policy_number = "Exempt"
-        else:
-            match = re.search(r"(STR-\d{7}|\d{4}-\d+STR)", text)
-            if match:
-                policy_number = match.group(1)
-
-    # HOST TYPE AND NAME
+    # ROOM TYPE, HOST NAME 
+    room_type = "Entire Room"
     host_name = ""
-    host_type = ""
-    # Finds a button element whos aria label contains the word "host"
-    host_section = soup.find("button", {"aria-label": re.compile(r".*host.*")})
-    if host_section:
-        label = host_section.get("aria-label")
-        if "superhost" in label.lower():
-            host_type = "Superhost"
-        else:
-            host_type = "regular"
-        if "hosted by" in label.lower():
-            host_name = label.split("hosted by")[-1].strip()
-        else:
-            host_name = label.strip()
-        # remove "Superhost" text if it's attached
-        host_name = host_name.replace("Superhost", "").replace(",", "").strip()
 
-    # ROOM TYPE
-    room_type = ""
-
-    subtitle = soup.find("h2")
+    subtitle = soup.find("h2", {"elementtiming": "LCP-target"})
     if subtitle:
-        text = subtitle.get_text()
-
+        text = subtitle.get_text().strip()
+        # room type
         if "Private" in text:
             room_type = "Private Room"
         elif "Shared" in text:
             room_type = "Shared Room"
-        else:
-            room_type = "Entire Room"
+        # host name — comes after "hosted by"
+        if "hosted by" in text.lower():
+            host_name = text.split("hosted by")[-1].strip()
+            # clean \xa0 (non-breaking space)
+            host_name = host_name.replace("\xa0", "").strip()
 
-    #  LOCATION RATING 
+# HOST TYPE
+    host_type = "regular"
+    superhost_tag = soup.find(string=re.compile(r"is a Superhost", re.I))
+    if superhost_tag:
+        host_type = "Superhost"
+
+# LOCATION RATING
     location_rating = 0.0
-    rating_button = soup.find("button", {"aria-label": re.compile(r"Location rating")})
+    loc_label = soup.find("div", class_="_y1ba89", string="Location")
+    if loc_label:
+        rating_div = loc_label.find_next_sibling("div")
+        if rating_div:
+            inner = rating_div.find("div", {"aria-label": re.compile(r"out of 5")})
+            if inner:
+                match = re.search(r"([0-9.]+)", inner["aria-label"])
+                if match:
+                    location_rating = float(match.group(1))
 
-    if rating_button:
-        match = re.search(r"([0-9.]+)", rating_button["aria-label"])
-        if match:
-            location_rating = float(match.group(1))
-
-
-    # Stores all extracted values into a nested dictionary with the key being the listing ID
-    details[listing_id] = {
-        "policy_number": policy_number,
-        "host_type": host_type,
-        "host_name": host_name,
-        "room_type": room_type,
-        "location_rating": location_rating
+    #  COMBINE 
+    details = {
+        listing_id: {
+            "policy_number": policy_number,
+            "host_type": host_type,
+            "host_name": host_name,
+            "room_type": room_type,
+            "location_rating": location_rating
+        }
     }
 
     return details
@@ -339,11 +327,11 @@ def validate_policy_numbers(data) -> list[str]:
         policy_number = entry[2] # policy_number is at index 2
 
         # Skip Pending or Exempt
-        if policy_number in ["Pending", "Exempt"]:
+        if policy_number in ["pending", "exempt"]:
             continue
 
         # Checks for valid format which is STR-000#### or 20##-00####STR
-        if not re.match(r"^(STR-\d{7}|20\d{2}-00\d{4})$", policy_number):
+        if not re.match(r"^(STR-\d{7}|20\d{2}-\d{6}STR)$", policy_number):
             invalid_ids.append(listing_id)
 
     return invalid_ids
@@ -459,11 +447,13 @@ class TestCases(unittest.TestCase):
         self.assertEqual(invalid_listings, ["16204265"])
 
 
+
 def main():
     detailed_data = create_listing_database(os.path.join("html_files", "search_results.html"))
     output_csv(detailed_data, "airbnb_dataset.csv")
 
-
 if __name__ == "__main__":
     main()
     unittest.main(verbosity=2)
+
+
