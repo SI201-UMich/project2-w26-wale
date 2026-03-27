@@ -92,8 +92,9 @@ def get_listing_details(listing_id) -> dict:
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
-    filename = f"listing_{listing_id}.html"
-    
+    #filename = f"listing_{listing_id}.html"
+    filename = os.path.join("html_files", f"listing_{listing_id}.html")
+   
     # Opens the file in read mode with utf-8 encoding 
     with open(filename, "r", encoding="utf-8") as f:
         # Parses html content into beautifulsoup object 
@@ -182,7 +183,44 @@ def create_listing_database(html_path) -> list[tuple]:
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
-    pass
+
+    # Calls load_listing_results to get a list of title,listing_id tuples
+    listings_basic = load_listing_results(html_path)
+
+    # Empty list
+    database = []
+
+    # Loops through each listing found in the search results
+    for title, listing_id in listings_basic:
+        # Calls get_listing_details to parse the individual listing HTML and return a dictionary of the details
+        details_dict = get_listing_details(listing_id)
+        # Uses .get() to extract the dictionary for the current listing_id
+        details = details_dict.get(listing_id, {})
+
+
+        # Pulls out all required fields and provides default values if anything is missing
+        policy_number = details.get("policy_number", "")
+        host_type = details.get("host_type", "")
+        host_name = details.get("host_name", "")
+        room_type = details.get("room_type", "")
+        location_rating = details.get("location_rating", 0.0)
+
+        # Makes one tuple with all listing data
+        listing_tuple = (
+            title,
+            listing_id,
+            policy_number,
+            host_type,
+            host_name,
+            room_type,
+            location_rating,
+        )
+
+        # Appends the tuple to the database list
+        database.append(listing_tuple)
+
+    return database
+
     # ==============================
     # YOUR CODE ENDS HERE
     # ==============================
@@ -205,7 +243,19 @@ def output_csv(data, filename) -> None:
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
-    pass
+    
+    # Sort data by location_rating in descending order
+    data_sorted = sorted(data, key=lambda x: x[6], reverse=True)
+
+    # Open the file for writing
+    with open(filename, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        # Writes header
+        writer.writerow(["listing_title", "listing_id", "policy_number", "host_type", "host_name", "room_type", "location_rating"])
+        # Writes data rows
+        for row in data_sorted:
+            writer.writerow(row)
+
     # ==============================
     # YOUR CODE ENDS HERE
     # ==============================
@@ -329,6 +379,7 @@ class TestCases(unittest.TestCase):
 def main():
     detailed_data = create_listing_database(os.path.join("html_files", "search_results.html"))
     output_csv(detailed_data, "airbnb_dataset.csv")
+
 
 if __name__ == "__main__":
     main()
