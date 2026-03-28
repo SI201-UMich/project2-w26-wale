@@ -1,0 +1,34 @@
+﻿Do you think this current system provides adequate accountability around short-term
+rentals in San Francisco? In your response, describe why you believe the system is
+adequate or inadequate. If you believe the system is inadequate, discuss a possible
+change in actions required to improve accountability in this system. You may refer to the
+SWE Code of Ethics as you think through your response.
+
+
+I don't think this current system provides any accountability around short term rentals in SF. I think it's inadequate because it only relies on complaints to review whether the property listings are valid. Since it only relies on complaints, airbnb hosts can just put a fake number, an old number, or put no license at all. So many can go unnoticed. To improve accountability in this system I think the weight should fall more on the SF government. I don't think Airbnb is going to help enforce this because it was the SF government’s idea in the first place and hosts may lose money. So, Airbnb is most likely going to side more with the hosts. Airbnb as a platform definitely has responsibility to hold because rule 1.06 in the SWE Code of Ethics says “Be fair and avoid deception in all statements, particularly public ones, concerning software or related documents, methods and tools.” And if SF can't verify every license they have a responsibility to make sure they hold hosts accountable. I think the city needs to be more proactive and do something like require Airbnb to automatically validate policy numbers with the city's database before a listing goes live.
+
+
+
+
+As discussed in the introduction, the legality of web scraping is still uncertain in the US.
+Skim through the Legal Issues section of Web Scraping in the US on Wikipedia and this
+article about the legal issues with the Computer Fraud and Abuse Act, and describe at
+least one factor you believe is important to consider when discussing the legality of web
+scraping and why.
+
+
+I think anyone should be able to scrape whatever they want. This project already revealed how many licenses may not be in the SF public database. Anyone should be able to scrape whatever because these companies don't know everything and independent researchers journalists can learn a lot from the countless data they farm from users anyway. I think the most important factor is whether the data is publicly available or not. If anyone can see it in a browser, writing code to read it faster shouldn't be a crime. So I think the judge was right in that sense. I think a site should make it very clear when they don't want any scraping by restricting access to things. If a site clearly revokes access through blocking or restrictions, continuing to scrape may cross into unauthorized access.
+
+
+
+
+Scraping public data does not always lead to positive results for society. For example,
+look to Facebook–Cambridge Analytica data scandal - Wikipedia or Clearview AI -
+Wikipedia. Many argue that using someone’s personal data without their consent (even if
+publicly provided) is unethical. Web scraping requires thoughtful intervention. Develop at
+least two guidelines you think are important to consider when deciding whether to do
+web scraping.
+
+
+Even if data is public, scraping should consider whether users expected their data to be used by others. Like some things like airbnb bookings a person would expect that to be saved somewhere but more personal things like private messages would impede on boundaries. So if someone scrapes I think they should create boundaries for themselves on what people would expect to be used. 
+Scraping is more justifiable when it serves a clear public interest like research or journalism instead of things like surveillance or exploitation. So if scrapers made their projects public or very transparent. There should be clear intent with a goal rather than just wanting access.
