@@ -45,18 +45,13 @@ def load_listing_results(html_path) -> list[tuple]:
 
     html_path = os.path.join(os.path.dirname(__file__), "html_files", "search_results.html")
     with open(html_path, encoding="utf-8-sig") as f:
-        # Parses html content into beautifulsoup object
         soup = BeautifulSoup(f, "html.parser")
     
-    # Empty list to store results
     listings = []
 
-    # Finds all <div> elements that have listing titles
     title_divs = soup.find_all("div", {"data-testid": "listing-card-title"})
 
-    # Loops through each listing title element found in the HTML
     for div in title_divs:
-        # Extracts visible text (the listing title) and removes extra spaces
         title = div.get_text().strip()
         # Gets the id attribute and removes the title_ to isolate the actual listing ID
         listing_id = div.get("id").replace("title_", "")
@@ -105,9 +100,9 @@ def get_listing_details(listing_id) -> dict:
         span = parent.find("span")
         if span:
             text = span.get_text().strip()
-            if "Pending" in text:
+            if "pending" in text:
                 policy_number = "Pending"
-            elif "Exempt" in text:
+            elif "exempt" in text:
                 policy_number = "Exempt"
             else:
                 policy_number = text
@@ -124,10 +119,8 @@ def get_listing_details(listing_id) -> dict:
             room_type = "Private Room"
         elif "Shared" in text:
             room_type = "Shared Room"
-        # host name — comes after "hosted by"
         if "hosted by" in text.lower():
             host_name = text.split("hosted by")[-1].strip()
-            # clean \xa0 (non-breaking space)
             host_name = host_name.replace("\xa0", "").strip()
 
     # HOST TYPE
@@ -354,7 +347,20 @@ def google_scholar_searcher(query):
     # ==============================
     # YOUR CODE STARTS HERE
     # ==============================
-    pass
+    import requests
+    from bs4 import BeautifulSoup
+
+    url = f"https://scholar.google.com/scholar?q={query}"
+    headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+    
+    response = requests.get(url, headers=headers)
+    soup = BeautifulSoup(response.text, "html.parser")
+    
+    titles = []
+    for tag in soup.find_all("h3", class_="gs_rt"):
+        titles.append(tag.get_text())
+    
+    return titles
     # ==============================
     # YOUR CODE ENDS HERE
     # ==============================
@@ -454,5 +460,4 @@ def main():
 if __name__ == "__main__":
     main()
     unittest.main(verbosity=2)
-
 
